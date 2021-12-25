@@ -27,7 +27,9 @@ header: |
 
 steps:
   - full_name: Napari Developer
-  - email: yourname@example.com
+  - name: email
+    default: yourname@example.com
+    validator: pydantic:validate_email
   - github_username_or_organization: githubuser
   - plugin_name: napari-foobar
   - short_description: A simple plugin to use with napari
@@ -83,13 +85,16 @@ steps:
             prompt_text: Include black style formatter?
           - name: include_flake8
             default: true
-            prompt_text: Include Flake8 linting? (https://flake8.pycqa.org/en/latest/)
+            prompt_text: Include Flake8 linting? (https://github.com/PyCQA/flake8)
           - name: include_autoflake
             default: true
-            prompt_text: Include autoflake formatter?
+            prompt_text: Include autoflake formatter? (https://github.com/myint/autoflake)
           - name: include_isort
             default: true
-            prompt_text: Include isort import formatter?
+            prompt_text: Include isort import formatter? (https://github.com/PyCQA/isort)
           - name: include_setup_cfg_fmt
             default: true
-            prompt_text: Include setup.cfg formatter?
+            prompt_text: Include setup.cfg formatter? (https://github.com/asottile/setup-cfg-fmt)
+          - name: include_mypy
+            default: true
+            prompt_text: Include mypy type checker? (https://github.com/python/mypy)

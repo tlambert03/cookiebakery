@@ -1,11 +1,12 @@
 import ast
 from pathlib import Path
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, Callable, List, Optional, Tuple, Union
 
 from jinja2 import Environment
 from pydantic import BaseModel, root_validator
+from pydantic import validator as dvalidator
 from pydantic.fields import Field
-from rich import traceback
+from rich import prompt, traceback
 from rich.console import Console
 
 from ._rich import Confirm, Prompt
@@ -62,6 +63,7 @@ class Step(Whenable):
     default: Union[str, int, bool, None] = None
     prompt_text: Optional[str] = None
     choices: Optional[List[str]] = None
+    validator: Optional[Callable] = None
 
     @root_validator(pre=True)
     def _validate_root(cls, values: dict) -> dict:
@@ -84,22 +86,42 @@ class Step(Whenable):
             raise ValueError(f"{values['default']} is not one of {values['choices']}")
         return values
 
-    def prompt(self, context: dict, path=None) -> Any:
+    @dvalidator("validator", pre=True)
+    def _make_callable(cls, v):
+        if isinstance(v, str):
+            from importlib import import_module
+
+            modname, funcname = v.split(":")
+            module = import_module(modname)
+            return getattr(module, funcname)
+        return v
+
+    def get_prompt(self, context: dict) -> Tuple[prompt.PromptBase, Any]:
         prompt = (self.prompt_text or to_sentence_case(self.name)).strip()
         Console().rule(style="#333333")
         default = render_context(str(self.default), context)
         d_lower = default.lower()
         if d_lower in ("y", "1", "yes", "true", "n", "0", "no", "false"):
-            return Confirm.ask(prompt, default=d_lower in ("y", "1", "yes", "true"))
+            return Confirm(prompt), (d_lower in ("y", "1", "yes", "true"))
 
         choices = self.choices
         if choices:
             choices = [render_context(c, context) for c in choices]
-        return Prompt.ask(
-            prompt, choices=choices, default=default, show_digits=bool(choices)
-        )
+        return Prompt(prompt, choices=choices, show_digits=bool(choices)), default
 
-    execute = prompt
+    def execute(self, context: dict, path=None):
+        prmpt, default = self.get_prompt(context)
+        while True:
+            result = prmpt(default=default)
+            if self.validator is None:
+                return result
+            try:
+                result = self.validator(result)
+            except Exception as e:
+                Console().print(prompt.InvalidResponse(str(e)), style="red")
+                continue
+            else:
+                return result
 
 
 def _update_context(context: dict, path: Tuple[str, ...], value: Any):
