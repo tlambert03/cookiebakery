@@ -1,8 +1,10 @@
 import readline  # noqa
-from typing import TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
 from rich import prompt
-from rich.text import Text
+
+if TYPE_CHECKING:
+    from rich.text import Text
 
 Confirm = prompt.Confirm
 DefaultType = TypeVar("DefaultType")
@@ -24,39 +26,23 @@ class Prompt(prompt.Prompt):
         return _prompt(default=default, stream=stream)
 
     def make_prompt(self, default: DefaultType) -> "Text":
+        if not self.show_choices or not self.choices or not self.show_digits:
+            return super().make_prompt(default)
+
+        # build prompt with choices
         prompt = self.prompt.copy()
-        prompt.end = ""
-
-        if self.show_choices and self.choices:
-            if not self.show_digits:
-                _choices = "/".join(self.choices)
-                choices = f"[{_choices}]"
-                prompt.append(" ")
-                prompt.append(choices, "prompt.choices")
-            else:
-                prompt = Text()
-                _choices_list = [
-                    f"[{index+1}] {choice}" for index, choice in enumerate(self.choices)
-                ]
-
-                choices = "\n".join(_choices_list)
-                prompt.append(choices, "prompt.choices")
-                prompt.append("\n")
-                prompt.append(self.prompt.copy())
+        choices = "\n".join(f"{i+1} - {ch}" for i, ch in enumerate(self.choices))
+        prompt.append("\n" + choices, "prompt.choices")
+        prompt.append(f"\nChoose from 1-{len(self.choices)}", style="#888888")
         if (
             default != ...
             and self.show_default
             and isinstance(default, (str, self.response_type))
         ):
             prompt.append(" ")
-            if self.show_digits and self.choices:
-                _default = self.render_default(self.choices.index(default) + 1)
-            else:
-                _default = self.render_default(default)
+            _default = self.render_default(self.choices.index(default) + 1)
             prompt.append(_default)
-
         prompt.append(self.prompt_suffix)
-
         return prompt
 
     def check_choice(self, value: str) -> bool:

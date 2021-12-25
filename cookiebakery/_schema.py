@@ -15,6 +15,11 @@ if TYPE_CHECKING:
         when: Optional[str]
 
 
+def to_sentence_case(snake_str):
+    c0, *c1 = snake_str.split("_")
+    return f'{c0.title()} {" ".join(c1)}'
+
+
 def render_context(string: str, context: dict) -> str:
     template = Environment().from_string(string.replace(r"${{", r"{{"))
     return template.render(context)
@@ -31,7 +36,6 @@ class Step(BaseModel):
     default: Union[str, int, bool, None] = None
     prompt_text: Optional[str] = None
     choices: Optional[List[str]] = None
-    response: Optional[str] = None
     when: Optional[str] = None
 
     @root_validator(pre=True)
@@ -62,7 +66,7 @@ class Step(BaseModel):
         return values
 
     def prompt(self, context: dict) -> Any:
-        prompt = self.prompt_text or self.key
+        prompt = (self.prompt_text or to_sentence_case(self.key)).strip()
         default = render_context(str(self.default), context)
         d_lower = default.lower()
         if d_lower in ("y", "1", "yes", "true", "n", "0", "no", "false"):
@@ -87,7 +91,7 @@ class Phase(BaseModel):
         for step in self.steps:
             if should_execute(step, context):
                 context["steps"][step.key] = step.prompt(context)
-        return context
+        return context["steps"]
 
 
 class Workflow(BaseModel):
