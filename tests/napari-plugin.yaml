@@ -1,55 +1,65 @@
 name: Create npe2
 depends: [npe2]
+header: |
+  _&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&_
+  &&                                                     &&
+  &&               &&&&                                  &&
+  &&          &&&&///////&&&          ahoy               &&
+  &&        &&(//(((((((((/%&           napari           &&
+  &&       &&/(((((((((((((/&&            plugin         &&
+  &&      &&/((((((((((((((//&%                          &&
+  &&     &&/((((((((((((((((/&&                          &&
+  &&     &&/((((((((((((((((/&&%                         &&
+  &&     &&//((((((((((((((((//&&&                       &&
+  &&       &&//(((((((((((((((((///&&&&&&&&&&&&&&&       &&
+  &&         &&%//        ((((((((((((////*****,//&&%    &&
+  &&            &&//      ((((((((((((////*****,,,//&    &&
+  &&              &&//   ((((((((((((/////****,,,,,/&&   &&
+  &&                &&/(((((((((((((/////*****,,,,,/&&   &&
+  &&                 &&/((((((((((((/////*****,,,,,/&&   &&
+  &&                 &&//((((((((((//////*****,,,,//&&   &&
+  &&                  &&(/((((((((///////******,//&&     &&
+  &&                    &&//(((((////////****//&&&       &&
+  &&                      &&&//////////////&&&&          &&
+  &&                          &&&&&&&&&&&                &&
+  &&                                                     &&
+    &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
-phases:
-  required:
+steps:
+  - full_name: Napari Developer
+  - name: email
+    default: yourname@example.com
+    validator: pydantic:validate_email
+  - github_username_or_organization: githubuser
+  - plugin_name: napari-foobar
+  - short_description: A simple plugin to use with napari
+  - module_name: ${{ steps.plugin_name|lower|replace('-', '_') }}
+  - license: [BSD-3, MIT, Apache Software License 2.0, GNU LGPL v3.0]
+  - name: multiple_contributions
+    default: multiple
+    choices: [multiple, just one]
+    prompt_text: |
+      Will this plugin implement multiple contribution types
+      (e.g. reader, widget, etc.), or just one?
+  - name: plugin_type
+    when: ${{ steps.multiple_contributions == 'just one' }}
+    prompt_text: What type of plugin do you want to create?
+    default: Reader
+    choices: [Reader, Writer, Widget, Sample data]
+  - name: includes
+    when: ${{ steps.multiple_contributions != 'just one' }}
     steps:
-      - full_name: Napari Developer
-      - email: yourname@example.com
-      - github_username_or_organization: githubuser
-      - plugin_name: napari-foobar
-      - short_description: A simple plugin to use with napari
-      - module_name: ${{ steps.plugin_name|lower|replace('-', '_') }}
-      - license:
-        - BSD-3
-        - MIT
-        - Mozilla Public License 2.0
-        - Apache Software License 2.0
-        - GNU LGPL v3.0
-        - GNU GPL v3.
-
-      - key: multiple_contributions
-        default: multiple
-        choices: [multiple, just one]
-        prompt_text: |
-          Will this plugin implement multiple contribution types
-          (e.g. reader, widget, etc.), or just one?
-      - key: plugin_type
-        prompt_text: What type of plugin do you want to create?
-        default: Reader
-        choices: [Reader, Writer, Widget, Sample data]
-        when: ${{ steps.multiple_contributions == 'just one' }}
-      - key: include_reader_plugin
-        default: true
-        when: ${{ steps.multiple_contributions != 'just one' }}
-      - key: include_writer_plugin
-        default: true
-        when: ${{ steps.multiple_contributions != 'just one' }}
-      - key: include_dock_widget_plugin
-        default: true
-        when: ${{ steps.multiple_contributions != 'just one' }}
-      - key: include_function_plugin
-        default: true
-        when: ${{ steps.multiple_contributions != 'just one' }}
-
-      - key: level
-        default: Bare minimum
-        choices: [Bare minimum, Fully loaded, Let me pick from all the options]
-        prompt_text: "What repository features would you like to have?"
-
-  repo-features:
-    when: ${{ phases.required.level == 'Let me pick from all the options' }}
-    steps: # steps
+      - include_reader_plugin: true
+      - include_writer_plugin: true
+      - include_dock_widget_plugin: true
+      - include_function_plugin: true
+  - name: level
+    default: Bare minimum
+    choices: [Bare minimum, Fully loaded, Let me pick from all the options]
+    prompt_text: "What repository features would you like to have?"
+  - name: repo_features
+    when: ${{ steps.level == 'Let me pick from all the options' }}
+    steps:
       - documentation_framework: [mkdocs, sphinx, none]
       - github_repository_url:
           - https://github.com/${{steps.github_username_or_organization}}/${{steps.plugin_name}}
@@ -57,35 +67,34 @@ phases:
       - include_pytest_tests: true
       - include_github_actions_tests: true
       - use_git_tags_for_versioning: false
-      - key: include_github_actions_deploy_on_git_tag
+      - name: include_github_actions_deploy_on_git_tag
         default: true
-        when: ${{ steps.use_git_tags_for_versioning }}
-
+        when: ${{ steps.repo_features.use_git_tags_for_versioning }}
       - include_precommit_config: true
-      - key: pick_precommit
+      - name: pick_precommit
         default: Use them all
         choices: [Use them all, Let me pick]
         prompt_text: |
           Do you want to pick each pre-commit option,
           Or just use them all?
-
-      - key: include_black
-        default: true
-        prompt_text: Include black style formatter?
-        when: ${{ steps.pick_precommit == 'Let me pick' }}
-      - key: include_flake8
-        default: true
-        prompt_text: Include Flake8 linting? (https://flake8.pycqa.org/en/latest/)
-        when: ${{ steps.pick_precommit == 'Let me pick' }}
-      - key: include_autoflake
-        default: true
-        prompt_text: Include autoflake formatter?
-        when: ${{ steps.pick_precommit == 'Let me pick' }}
-      - key: include_isort
-        default: true
-        prompt_text: Include isort import formatter?
-        when: ${{ steps.pick_precommit == 'Let me pick' }}
-      - key: include_setup_cfg_fmt
-        default: true
-        prompt_text: Include setup.cfg formatter?
-        when: ${{ steps.pick_precommit == 'Let me pick' }}
+      - name: precommit-features
+        when: ${{ steps.repo_features.pick_precommit == 'Let me pick' }}
+        steps:
+          - name: include_black
+            default: true
+            prompt_text: Include black style formatter?
+          - name: include_flake8
+            default: true
+            prompt_text: Include Flake8 linting? (https://github.com/PyCQA/flake8)
+          - name: include_autoflake
+            default: true
+            prompt_text: Include autoflake formatter? (https://github.com/myint/autoflake)
+          - name: include_isort
+            default: true
+            prompt_text: Include isort import formatter? (https://github.com/PyCQA/isort)
+          - name: include_setup_cfg_fmt
+            default: true
+            prompt_text: Include setup.cfg formatter? (https://github.com/asottile/setup-cfg-fmt)
+          - name: include_mypy
+            default: true
+            prompt_text: Include mypy type checker? (https://github.com/python/mypy)

@@ -2,6 +2,7 @@ import enum
 import os
 import subprocess
 import tempfile
+import warnings
 from contextlib import contextmanager, nullcontext
 from typing import (
     Generator,
@@ -13,7 +14,9 @@ from typing import (
     Union,
 )
 
-from virtualenv import cli_run
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    from virtualenv import cli_run
 
 _Unset = enum.Enum("_Unset", "UNSET")
 UNSET = _Unset.UNSET

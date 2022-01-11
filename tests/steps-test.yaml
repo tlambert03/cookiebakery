@@ -1,0 +1,43 @@
+steps:
+  - some_key1: Some Value
+  - name: some_key2
+    default: Some Value
+  - name: some_key3
+    default: 10
+    validator: builtins:int
+  - name: some_key4
+    default: 10
+  - some_choice1: ['some', 'choices']
+  - name: some_choice2
+    default: some
+    choices:
+      - some
+      - choices
+
+  - github_username_or_organization: githubuser
+  - plugin_name: napari-foobar
+  - module_name: ${{ steps.plugin_name|lower|replace('-', '_') }}
+  - github_repository_url:
+      - https://github.com/${{steps.github_username_or_organization}}/${{steps.plugin_name}}
+      - provide later
+  - short_description: A simple plugin to use with napari
+
+  - name: ask_all_plugins
+    default: true
+    prompt_text: 'Do you want to be asked about all plugin types?'
+
+  - name: plugin_choice
+    default: reader
+    choices: [reader, writer, widget]
+    when: ${{ not steps.ask_all_plugins }}
+
+  - name: includes
+    when: ${{ steps.ask_all_plugins }}
+    steps:
+      - include_reader_plugin: true
+      - include_writer_plugin: true
+      - include_dock_widget_plugin: true
+      - include_function_plugin: true
+
+  - use_git_tags_for_versioning: false
+  - install_precommit: false
