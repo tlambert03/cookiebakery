@@ -1,6 +1,7 @@
 import ast
+from contextlib import nullcontext
 from pathlib import Path
-from typing import Any, Callable, List, Optional, Tuple, Union
+from typing import Any, Callable, ContextManager, List, Optional, Tuple, Union
 
 from jinja2 import Environment
 from pydantic import BaseModel, root_validator
@@ -10,6 +11,7 @@ from rich import prompt, traceback
 from rich.console import Console
 
 from ._rich import Confirm, Prompt
+from ._venv import in_env
 
 traceback.install(show_locals=False)
 
@@ -64,6 +66,7 @@ class Step(Whenable):
     prompt_text: Optional[str] = None
     choices: Optional[List[str]] = None
     validator: Optional[Callable] = None
+    help: Optional[str] = None
 
     @root_validator(pre=True)
     def _validate_root(cls, values: dict) -> dict:
@@ -156,9 +159,16 @@ class Workflow(SubRoutine):
     depends: List[str] = Field(default_factory=list)
 
     def execute(self) -> dict:  # type: ignore
-        Console().print()
-        Console().print(self.header, style="green")
-        return super().execute(None, path=("steps",))
+        if self.depends:
+            print(f"installing dependencies: {','.join(self.depends)} ...")
+            env: ContextManager = in_env(requirements=self.depends)
+        else:
+            env = nullcontext()
+
+        with env:
+            Console().print()
+            Console().print(self.header, style="green")
+            return super().execute(None, path=("steps",))
 
     @classmethod
     def from_file(cls, path: Union[str, Path]) -> "Workflow":
